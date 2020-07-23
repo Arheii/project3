@@ -4,7 +4,9 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
 
-from .models import User
+
+from .models import User, Tweet
+
 
 
 def index(request):
@@ -61,3 +63,19 @@ def register(request):
         return HttpResponseRedirect(reverse("index"))
     else:
         return render(request, "network/register.html")
+
+
+
+from rest_framework import viewsets
+
+from native.models import Cat, Breed
+from .serializers import CatSerializer, BreedSerializer
+# from django.views.decorators.csrf import csrf_exempt
+
+# @csrf_exempt
+class CatViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows cats to be viewed or edited.
+    """
+    queryset = Cat.objects.all().order_by('id')
+    serializer_class = CatSerializer
