@@ -1,10 +1,12 @@
+import json
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from django import forms
 from django.core.paginator import Paginator
+from django.contrib.auth.decorators import login_required
 
 from .models import User, Tweet
 
@@ -92,35 +94,55 @@ def following_page(request, user_id):
         })
 
 
-# @login_required
+@login_required
 def follow_or_unfollow(request, user_id):
     user = get_object_or_404(User, pk=user_id)
 
     if user != request.user:
+
         # Unfollow user_id from current loggin user
         if user in request.user.folowing.all():
             request.user.folowing.remove(user)
         # Follow
         else:
             request.user.folowing.add(user)
-    # request.user.save()
 
     return HttpResponseRedirect(reverse("tweets:user", args=(user_id)))
 
 
-# @login_required
+@login_required
 def like_or_dislike(request, tweet_id):
     tweet = get_object_or_404(Tweet, pk=tweet_id)
 
-    # Remove or add current user to LikeList for tweet
+    # dislike
     if request.user in tweet.likes.all():
         tweet.likes.remove(request.user)
-    # Follow
+    # like
     else:
         tweet.likes.add(request.user)
 
     return HttpResponse(status=204)
 
+
+@login_required
+def edit(request, tweet_id):
+    tweet = get_object_or_404(Tweet, pk=tweet_id)
+
+    # User try edit not your tweet
+    if request.user != tweet.owner:
+        return "406" #TODO
+
+    if request.method == "POST":
+        data = json.loads(request.body)
+        if data.get("text") is not None:
+            tweet.body = data["text"]
+
+        try:
+            tweet.save()
+        except:
+            return JsonResponse({'error': 'incorrect data in text field'}, status=422)
+
+    return JsonResponse({'text': tweet.body}, status=204)
 
 
 def login_view(request):

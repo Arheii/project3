@@ -51,9 +51,20 @@
           <div class="card-header">
             @<a href="{% url 'tweets:user' tweet.owner.id %}" class="hrefuser">{{ tweet.owner }}</a>
           </div>
-          <div class="card-body">
-            <p class="card-text">{{ tweet.body }}</p>
+
+          <div id="body_{{ tweet.id }}" class="card-body">
+            <p id="text_{{ tweet.id }}" data-body="{{ tweet.body }}" class="card-text">
+              {{ tweet.body }}
+              {% if user.is_authenticated and user == tweet.owner %}
+                <button type="button" class="btn btn-sm btn-link float-right edit" data-id="{{ tweet.id }}">edit</button>
+              {% endif %}
+            </p>
+            <form class="tweet_form" id="form_{{ tweet.id }}" data-id="{{ tweet.id }}" style="display: none;">
+              <textarea class="form-control p-1" name="text" id="textarea_{{ tweet.id }}" rows="3">{{ tweet.body }}</textarea>
+              <button type="submit" class="btn btn-outline-info btn-sm float-right mt-1">Save</button>
+            </form>
           </div>
+
           <div class="card-footer">
             {% if user in tweet.likes.all %}
                 <button class="btn btn-default fa fa-heart likes" data-id="{{ tweet.id }}" style="color:red;">
