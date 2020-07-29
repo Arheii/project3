@@ -1,5 +1,99 @@
 {% extends "network/layout.html" %}
+{% load static %}
 
 {% block body %}
-    TODO
+  <div class="row justify-content-center p-2">
+    <div class="col-12 col-sm-10 col-md-6 col-lg-4">
+
+    <!--Если это страница пользователя, отображаем имя, кол-во и ссылку на ленту фолловеров и кнопку подписаться -->
+    {% if userpage is not None %}
+      <div class="p-3 border-bottom" id="follows_block">
+        <!--<br>-->
+        <span class='h4'>@{{ userpage }}</span>
+        &nbsp&nbsp
+        <a href="{% url 'tweets:following' userpage.id %}" class="black_text">{{ userpage.folowing.all | length }}<span class='follow_text'> Following</span></a>
+        &nbsp&nbsp
+        <a href="#" class="black_text">{{ userpage.folowers.all | length }} <span class='follow_text'> Followers</span></a>
+        <!--add follow/unfollow button -->
+        {% if userpage.id != user.id %}
+          {% if userpage in user.folowing.all %}
+              <a href="{% url 'tweets:follow_or_unfollow' userpage.id %}" class="btn btn-sm btn-success m-2">Unfollow</a>
+          {% else %}
+              <a href="{% url 'tweets:follow_or_unfollow' userpage.id %}" class="btn btn-sm btn-success m-2">Follow</a>
+          {% endif %}
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <!--Если пользоваль залогинен и находится на своей или общей ленте - то отображаем форму для нового твита-->
+    {% if user.is_authenticated and form is not None%}
+      <row id='form_tweet'>
+        <div class="border border-info">
+          <form class="form-group p-2 mb-0" action="{% url 'tweets:index' %}"  method="post">
+            <h6>New post</h6>
+            {% csrf_token %}
+            {{ form.body.errors }}
+            {{ form.body }}
+            <button class="btn btn-sm btn-primary mt-1" type="submit">Post</button>
+          </form>
+        </div>
+      </row>
+    {% endif %}
+
+    <div class="pt-4 pb-2">
+        <h5 id="title_block">{{ title }}</h5>
+    </div>
+
+
+    {% for tweet in tweets_page %}
+      <div class="row-justify pb-3">
+        <div class="card">
+          <div class="card-header">
+            @<a href="{% url 'tweets:user' tweet.owner.id %}" class="hrefuser">{{ tweet.owner }}</a>
+          </div>
+          <div class="card-body">
+            <p class="card-text">{{ tweet.body }}</p>
+          </div>
+          <div class="card-footer">
+            {% if user in tweet.likes.all %}
+                <button class="btn btn-default fa fa-heart likes" data-id="{{ tweet.id }}" style="color:red;">
+            {% else %}
+                <button class="btn btn-default fa fa-heart-o likes" data-id="{{ tweet.id }}" style="color:red;">
+            {% endif %}
+
+              <span id="likes_for_{{ tweet.id }}" style="color:gray;">{{ tweet.likes.all | length }}</span>
+            </button>
+            <span class="text-muted float-right" style="font-size: 80%;">{{ tweet.created_on }}</span>
+          </div>
+        </div>
+      </div>
+
+    {% endfor %}
+
+    <!--Pagindation-->
+    <div class="pagination">
+      <span class="step-links">
+        {% if tweets_page.has_previous %}
+          <a href="?page=1">&laquo; first</a>
+          <a href="?page={{ tweets_page.previous_page_number }}">previous</a>
+        {% endif %}
+
+        <span class="current">
+          Page {{ tweets_page.number }} of {{ tweets_page.paginator.num_pages }}.
+        </span>
+
+        {% if tweets_page.has_next %}
+          <a href="?page={{ tweets_page.next_page_number }}">next</a>
+          <a href="?page={{ tweets_page.paginator.num_pages }}">last &raquo;</a>
+        {% endif %}
+      </span>
+    </div>
+
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block script %}
+    <script src="{% static 'network/index.js' %}"></script>
 {% endblock %}

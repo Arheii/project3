@@ -1,16 +1,126 @@
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
-
+from django import forms
+from django.core.paginator import Paginator
 
 from .models import User, Tweet
 
 
+class NewTweet(forms.ModelForm):
+    class Meta:
+        model = Tweet
+        fields = ['body']
+        widgets = {
+            'body': forms.Textarea(attrs={'class': "form-control", 'placeholder': "What you want say to the word?"}),
+        }
+
 
 def index(request):
-    return render(request, "network/index.html")
+    if request.method == "POST":
+        form = NewTweet(request.POST)
+        # if new form for tweet fill corectly -> save to db
+        if form.is_valid():
+            Tweet.objects.create(owner=request.user, body=form.cleaned_data['body'])
+            # load page with new tweet
+            return HttpResponseRedirect(reverse("tweets:index"))
+    else:
+        form = NewTweet()
+
+    tweets = Tweet.objects.all()
+    paginator = Paginator(tweets, 10)
+    page_number = request.GET.get('page')
+    tweets_on_page = paginator.get_page(page_number)
+
+    return render(request, "network/index.html", {
+            "form": form,
+            "title": "All tweets:",
+            "userpage": None,
+            "tweets_page": tweets_on_page
+        })
+
+
+def user_page(request, user_id):
+    user = get_object_or_404(User, pk=user_id)
+
+    # Disable form if it's page other user
+    if user != request.user:
+        form = None
+
+    # Enable form and POST query if it's yourself page
+    elif request.method == "POST":
+        form = NewTweet(request.POST)
+        # if new form for lot fill corectly -> save to db
+        if form.is_valid():
+            Tweet.objects.create(owner=request.user, body=form.cleaned_data['body'])
+            # load page with new tweet
+            return HttpResponseRedirect(reverse("tweets:index", args=(user_id)))
+    else:
+        form = NewTweet()
+
+    tweets = Tweet.objects.filter(owner=user_id)
+    paginator = Paginator(tweets, 10)
+    page_number = request.GET.get('page')
+    tweets_on_page = paginator.get_page(page_number)
+
+    return render(request, "network/index.html", {
+            "form": form,
+            "title": f"{user} tweets:",
+            "userpage": user,
+            "tweets_page": tweets_on_page
+        })
+
+
+def following_page(request, user_id):
+    user = get_object_or_404(User, pk=user_id)
+
+    # Disable newtweet form
+    form = None
+
+    tweets = Tweet.objects.filter(owner__in=user.folowing.all())
+    paginator = Paginator(tweets, 10)
+    page_number = request.GET.get('page')
+    tweets_on_page = paginator.get_page(page_number)
+
+    return render(request, "network/index.html", {
+            "form": form,
+            "title": f"{user} following tweets:",
+            "userpage": user,
+            "tweets_page": tweets_on_page
+        })
+
+
+# @login_required
+def follow_or_unfollow(request, user_id):
+    user = get_object_or_404(User, pk=user_id)
+
+    if user != request.user:
+        # Unfollow user_id from current loggin user
+        if user in request.user.folowing.all():
+            request.user.folowing.remove(user)
+        # Follow
+        else:
+            request.user.folowing.add(user)
+    # request.user.save()
+
+    return HttpResponseRedirect(reverse("tweets:user", args=(user_id)))
+
+
+# @login_required
+def like_or_dislike(request, tweet_id):
+    tweet = get_object_or_404(Tweet, pk=tweet_id)
+
+    # Remove or add current user to LikeList for tweet
+    if request.user in tweet.likes.all():
+        tweet.likes.remove(request.user)
+    # Follow
+    else:
+        tweet.likes.add(request.user)
+
+    return HttpResponse(status=204)
+
 
 
 def login_view(request):
@@ -24,7 +134,7 @@ def login_view(request):
         # Check if authentication successful
         if user is not None:
             login(request, user)
-            return HttpResponseRedirect(reverse("index"))
+            return HttpResponseRedirect(reverse("tweets:index"))
         else:
             return render(request, "network/login.html", {
                 "message": "Invalid username and/or password."
@@ -35,7 +145,7 @@ def login_view(request):
 
 def logout_view(request):
     logout(request)
-    return HttpResponseRedirect(reverse("index"))
+    return HttpResponseRedirect(reverse("tweets:index"))
 
 
 def register(request):
@@ -60,22 +170,6 @@ def register(request):
                 "message": "Username already taken."
             })
         login(request, user)
-        return HttpResponseRedirect(reverse("index"))
+        return HttpResponseRedirect(reverse("tweets:index"))
     else:
         return render(request, "network/register.html")
-
-
-
-from rest_framework import viewsets
-
-from native.models import Cat, Breed
-from .serializers import CatSerializer, BreedSerializer
-# from django.views.decorators.csrf import csrf_exempt
-
-# @csrf_exempt
-class CatViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows cats to be viewed or edited.
-    """
-    queryset = Cat.objects.all().order_by('id')
-    serializer_class = CatSerializer

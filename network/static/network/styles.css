@@ -1,0 +1,17 @@
+#id_body {
+    height: 10vh;
+}
+
+.hrefuser {
+    font-weight:bold;
+    color:gray;
+    /*font-size:15px;*/
+}
+
+.follow_text {
+    color:  #77aed2 ;
+}
+
+.black_text {
+    color: black;
+}
