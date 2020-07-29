@@ -130,19 +130,24 @@ def edit(request, tweet_id):
 
     # User try edit not your tweet
     if request.user != tweet.owner:
-        return "406" #TODO
+        return HttpResponse(status=406)
 
-    if request.method == "POST":
+    if request.method == "PUT":
         data = json.loads(request.body)
+        print(f"\ndata: {data}")
         if data.get("text") is not None:
             tweet.body = data["text"]
+        else:
+            JsonResponse({"new_text": tweet.body}, status=201)
 
         try:
             tweet.save()
         except:
             return JsonResponse({'error': 'incorrect data in text field'}, status=422)
 
-    return JsonResponse({'text': tweet.body}, status=204)
+    print(f"\nNew tweet text {tweet.body}")
+    return JsonResponse({"new_text": tweet.body}, status=201)
+
 
 
 def login_view(request):

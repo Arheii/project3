@@ -8,14 +8,14 @@
     <!--Если это страница пользователя, отображаем имя, кол-во и ссылку на ленту фолловеров и кнопку подписаться -->
     {% if userpage is not None %}
       <div class="p-3 border-bottom" id="follows_block">
-        <!--<br>-->
         <span class='h4'>@{{ userpage }}</span>
         &nbsp&nbsp
         <a href="{% url 'tweets:following' userpage.id %}" class="black_text">{{ userpage.folowing.all | length }}<span class='follow_text'> Following</span></a>
         &nbsp&nbsp
         <a href="#" class="black_text">{{ userpage.folowers.all | length }} <span class='follow_text'> Followers</span></a>
-        <!--add follow/unfollow button -->
-        {% if userpage.id != user.id %}
+
+        <!--add follow/unfollow button for authorisated users -->
+        {% if user.is_authenticated and userpage.id != user.id %}
           {% if userpage in user.folowing.all %}
               <a href="{% url 'tweets:follow_or_unfollow' userpage.id %}" class="btn btn-sm btn-success m-2">Unfollow</a>
           {% else %}
@@ -44,22 +44,23 @@
         <h5 id="title_block">{{ title }}</h5>
     </div>
 
-
+    <!--Tweets block-->
     {% for tweet in tweets_page %}
-      <div class="row-justify pb-3">
+      <div class="row-justify pb-4">
         <div class="card">
           <div class="card-header">
             @<a href="{% url 'tweets:user' tweet.owner.id %}" class="hrefuser">{{ tweet.owner }}</a>
           </div>
 
           <div id="body_{{ tweet.id }}" class="card-body">
-            <p id="text_{{ tweet.id }}" data-body="{{ tweet.body }}" class="card-text">
-              {{ tweet.body }}
+            <div id="text_{{ tweet.id }}" data-body="{{ tweet.body }}" class="card-text">
+                <span>{{ tweet.body }}</span>
               {% if user.is_authenticated and user == tweet.owner %}
                 <button type="button" class="btn btn-sm btn-link float-right edit" data-id="{{ tweet.id }}">edit</button>
               {% endif %}
-            </p>
+            </div>
             <form class="tweet_form" id="form_{{ tweet.id }}" data-id="{{ tweet.id }}" style="display: none;">
+              {% csrf_token %}
               <textarea class="form-control p-1" name="text" id="textarea_{{ tweet.id }}" rows="3">{{ tweet.body }}</textarea>
               <button type="submit" class="btn btn-outline-info btn-sm float-right mt-1">Save</button>
             </form>
@@ -82,23 +83,62 @@
     {% endfor %}
 
     <!--Pagindation-->
-    <div class="pagination">
-      <span class="step-links">
+    <!--<div class="pagination">-->
+    <!--  <span class="step-links">-->
+    <!--    {% if tweets_page.has_previous %}-->
+    <!--      <a href="?page=1">&laquo; first</a>-->
+    <!--      <a href="?page={{ tweets_page.previous_page_number }}">previous</a>-->
+    <!--    {% endif %}-->
+
+    <!--    <span class="current">-->
+    <!--      Page {{ tweets_page.number }} of {{ tweets_page.paginator.num_pages }}.-->
+    <!--    </span>-->
+
+    <!--    {% if tweets_page.has_next %}-->
+    <!--      <a href="?page={{ tweets_page.next_page_number }}">next</a>-->
+    <!--      <a href="?page={{ tweets_page.paginator.num_pages }}">last &raquo;</a>-->
+    <!--    {% endif %}-->
+    <!--  </span>-->
+    <!--</div>-->
+
+
+    <nav aria-label="navigation">
+      <ul class="pagination justify-content-center">
+
         {% if tweets_page.has_previous %}
-          <a href="?page=1">&laquo; first</a>
-          <a href="?page={{ tweets_page.previous_page_number }}">previous</a>
+          <li class="page-item">
+            <a class="page-link" href="?page=1}">First</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ tweets_page.previous_page_number }}">{{ tweets_page.previous_page_number }}</a>
+          </li>
+
+        {% else %}
+          <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1">First</a>
+          </li>
         {% endif %}
 
-        <span class="current">
-          Page {{ tweets_page.number }} of {{ tweets_page.paginator.num_pages }}.
-        </span>
+         <!--Active page-->
+        <li class="page-item active">
+            <a class="page-link" href="#">{{ tweets_page.number }}</a>
+        </li>
 
         {% if tweets_page.has_next %}
-          <a href="?page={{ tweets_page.next_page_number }}">next</a>
-          <a href="?page={{ tweets_page.paginator.num_pages }}">last &raquo;</a>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ tweets_page.next_page_number }}">{{ tweets_page.next_page_number }}</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ tweets_page.paginator.num_pages }}">Last</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled">
+            <a class="page-link" href="?page={{ tweets_page.paginator.num_pages }}">Last</a>
+          </li>
         {% endif %}
-      </span>
-    </div>
+
+      </ul>
+    </nav>
 
     </div>
   </div>
